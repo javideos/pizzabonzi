@@ -19,6 +19,17 @@ Todo está en `index.html`, dentro de la etiqueta `<script>`:
 - `CONFIG`: nombre del local, número de WhatsApp y formas de pago.
 - `MENU`: categorías, productos, descripciones y precios.
 
+## Fotos de los productos
+
+Las fotos están en la carpeta `img/` y deben subirse al repositorio junto con `index.html`.
+
+Para sumar o cambiar una foto:
+
+1. Guardá la imagen en `img/` (mejor en JPG y de unos 500 píxeles de ancho, para que cargue rápido en el celular).
+2. En `MENU`, agregá al producto el campo `img: "img/nombre-del-archivo.jpg"`.
+
+Si un producto no tiene foto, o la foto no carga, se muestra un ícono en su lugar.
+
 ## Publicarlo con GitHub Pages
 
 1. En el repositorio, entrá a **Settings > Pages**.
