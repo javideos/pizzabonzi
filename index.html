@@ -1,0 +1,368 @@
+<title>Pedidos Bonzi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: cabecera azul noche, categorías pegadas arriba, lista de productos en una columna, barra de pedido fija abajo y panel deslizable para el carrito. */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #e7f0ea;
+  --ink: #0d2316;
+  --ink-soft: #4a6354;
+  --line: #cddbd2;
+  --navy: #00531b;
+  --on-navy: #ffffff;
+  --accent: #a5121c;
+  --on-accent: #ffffff;
+  --ok: #00531b;
+  --err: #a5121c;
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--navy); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.wrap { max-width: 720px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.top { background: var(--navy); color: var(--on-navy); border-bottom: 6px solid var(--accent); }
+header.top .wrap { padding-block: 28px 22px; }
+.brand { font-family: var(--font-display); font-weight: 800; font-size: clamp(34px, 9vw, 52px); line-height: 1; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+.brand span { color: var(--on-navy); }
+.tag { margin: 10px 0 0; color: color-mix(in srgb, var(--on-navy) 75%, transparent); max-width: 44ch; }
+.info { margin-top: 16px; display: grid; gap: 4px; font-size: 14px; color: color-mix(in srgb, var(--on-navy) 85%, transparent); }
+.info p { margin: 0; }
+.info a { color: var(--on-navy); text-underline-offset: 3px; }
+.badge { justify-self: start; display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13px; padding: 4px 11px; border-radius: 999px; background: color-mix(in srgb, var(--on-navy) 14%, transparent); color: var(--on-navy); margin-bottom: 4px; }
+.badge::before { content: ""; width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; background: #ffffff; }
+.badge.open::before { background: #ffffff; }
+.badge.closed::before { background: transparent; border: 2px solid #ffffff; }
+
+nav.cats { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+nav.cats .wrap { display: flex; gap: 8px; padding-block: 10px; overflow-x: auto; scrollbar-width: none; }
+nav.cats a { flex: none; text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; font-weight: 600; font-size: 14px; }
+nav.cats a[aria-current="true"] { background: var(--navy); color: var(--on-navy); border-color: var(--navy); }
+
+main .wrap { padding-block: 8px 130px; }
+section.cat { padding-top: 24px; scroll-margin-top: 64px; }
+section.cat h2 { font-family: var(--font-display); font-weight: 800; font-size: 26px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.cat-note { margin: 0 0 12px; color: var(--ink-soft); font-size: 13px; }
+ul.items { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.item { width: 100%; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 14px; align-items: center; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.item:hover { border-color: var(--accent); }
+.glyph { width: 56px; height: 56px; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; color: var(--accent); }
+.glyph svg { width: 34px; height: 34px; }
+.item h3 { margin: 0; font-size: 16px; font-weight: 600; text-wrap: balance; }
+.item p { margin: 2px 0 0; color: var(--ink-soft); font-size: 13px; }
+.price-col { display: grid; justify-items: end; gap: 6px; }
+.price { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.plus { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-size: 20px; line-height: 1; font-weight: 600; }
+.qty-badge { font-size: 12px; color: var(--ok); font-weight: 600; }
+
+.cartbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; padding-top: 10px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: linear-gradient(to top, var(--bg) 70%, transparent); }
+.cartbtn { display: flex; width: 100%; max-width: 720px; margin-inline: auto; align-items: center; justify-content: space-between; gap: 12px; background: var(--accent); color: var(--on-accent); border: 0; border-radius: 14px; padding: 15px 18px; font-weight: 600; font-size: 16px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.22); }
+.cartbtn .n { background: var(--on-accent); color: var(--accent); border-radius: 999px; min-width: 26px; height: 26px; display: inline-grid; place-items: center; font-size: 13px; margin-right: 8px; padding: 0 7px; }
+.cartbtn span { font-variant-numeric: tabular-nums; }
+
+.overlay { position: fixed; inset: 0; z-index: 40; background: rgb(8 10 25 / 0.55); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--bg); width: 100%; max-width: 720px; max-height: 92%; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 20px max(16px, env(safe-area-inset-left, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)); }
+.sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.sheet h2 { font-family: var(--font-display); font-weight: 800; font-size: 24px; margin: 0; text-wrap: balance; }
+.sheet .desc { margin: 6px 0 0; color: var(--ink-soft); }
+.close { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 18px; line-height: 1; }
+fieldset { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
+legend, .lbl { font-weight: 600; padding: 0; display: flex; justify-content: space-between; gap: 8px; width: 100%; margin-bottom: 8px; }
+.req { font-size: 12px; font-weight: 600; color: var(--accent); }
+.choices { display: grid; gap: 8px; }
+.choice { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.choice:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.choice input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
+input[type="text"], textarea, select { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; }
+textarea { resize: vertical; min-height: 72px; }
+.count { font-size: 12px; color: var(--ink-soft); font-weight: 400; }
+.field { margin-top: 16px; min-width: 0; }
+.err { color: var(--err); font-size: 13px; margin: 6px 0 0; }
+.row { display: flex; gap: 12px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.stepper button { width: 40px; height: 44px; border: 0; background: none; font-size: 20px; }
+.stepper output { min-width: 30px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.primary { flex: 1 1 180px; border: 0; background: var(--accent); color: var(--on-accent); border-radius: 12px; padding: 14px 18px; font-weight: 600; font-size: 16px; min-height: 48px; }
+.primary.wa { background: var(--navy); color: var(--on-navy); }
+.link { background: none; border: 0; color: var(--ink-soft); text-decoration: underline; padding: 6px; }
+
+.lines { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
+.line { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
+.line-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.line-top b { font-weight: 600; min-width: 0; }
+.line .sub { color: var(--ink-soft); font-size: 13px; overflow-wrap: anywhere; }
+.line-bot { display: flex; justify-content: space-between; align-items: center; }
+.line .stepper button { height: 36px; width: 36px; }
+.total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 18px; font-size: 18px; font-weight: 600; }
+.total span:last-child { font-variant-numeric: tabular-nums; }
+.fine { color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 0; }
+.empty { text-align: center; color: var(--ink-soft); padding: 28px 0 8px; }
+@media (max-width: 380px) { .item { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; } .glyph { width: 44px; height: 44px; } .glyph svg { width: 26px; height: 26px; } }
+@media (prefers-reduced-motion: no-preference) { .sheet { animation: up .22s ease-out; } @keyframes up { from { transform: translateY(24px); opacity: 0; } } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <h1 class="brand">Pizza <span>Bonzi</span></h1>
+    <p class="tag">Elegí lo que querés, armá tu pedido y envialo por WhatsApp.</p>
+    <div class="info">
+      <span class="badge" id="estado" hidden></span>
+      <p>Lunes a sábado · 11:30 a 15:00 y 19:00 a 23:30</p>
+      <p>Envío sin cargo · propina mínima sugerida $1.000</p>
+      <p><a href="https://www.google.com/maps/search/?api=1&query=Jos%C3%A9%20Alico%201379%2C%20Aldobonzi" target="_blank" rel="noopener">José Alico 1379, Aldobonzi</a></p>
+    </div>
+  </div>
+</header>
+<nav class="cats" aria-label="Categorías"><div class="wrap" id="catnav"></div></nav>
+<main><div class="wrap" id="menu"></div></main>
+
+<div class="cartbar" id="cartbar" hidden>
+  <button class="cartbtn" id="opencart" type="button"><div><b class="n" id="cn">0</b>Ver mi pedido</div><span id="ct">$0</span></button>
+</div>
+
+<div class="overlay" id="ov-product" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="p-name">
+    <div class="sheet-head"><div><h2 id="p-name"></h2><p class="desc" id="p-desc"></p></div><button class="close" type="button" data-close aria-label="Cerrar">✕</button></div>
+    <fieldset id="p-masa" hidden>
+      <legend>Tipo de masa <span class="req">Obligatorio</span></legend>
+      <div class="choices">
+        <label class="choice"><input type="radio" name="masa" value="Al molde"> Al molde</label>
+        <label class="choice"><input type="radio" name="masa" value="A la piedra"> A la piedra</label>
+      </div>
+      <p class="err" id="p-err" hidden>Elegí un tipo de masa para continuar.</p>
+    </fieldset>
+    <div class="field"><label class="lbl" for="p-obs">Observaciones <span class="count" id="p-count">0 / 150</span></label><textarea id="p-obs" maxlength="150" placeholder="Ej.: sin aceitunas, bien cocida…"></textarea></div>
+    <div class="row">
+      <div class="stepper"><button type="button" id="p-minus" aria-label="Quitar uno">−</button><output id="p-qty">1</output><button type="button" id="p-plus" aria-label="Agregar uno">+</button></div>
+      <button class="primary" type="button" id="p-add"></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ov-cart" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="c-title">
+    <div class="sheet-head"><h2 id="c-title">Tu pedido</h2><button class="close" type="button" data-close aria-label="Cerrar">✕</button></div>
+    <ul class="lines" id="c-lines"></ul>
+    <div id="c-form">
+      <div class="total"><span>Total</span><span id="c-total">$0</span></div>
+      <p class="fine" id="c-break"></p>
+      <div class="field"><label class="lbl" for="f-name">Tu nombre</label><input type="text" id="f-name" autocomplete="name"><p class="err" id="e-name" hidden>Escribí tu nombre.</p></div>
+      <fieldset>
+        <legend>Entrega</legend>
+        <div class="choices">
+          <label class="choice"><input type="radio" name="ent" value="Retiro en el local" checked> Retiro en el local</label>
+          <label class="choice"><input type="radio" name="ent" value="Envío a domicilio"> Envío a domicilio</label>
+        </div>
+      </fieldset>
+      <div class="field" id="f-addr-wrap" hidden><label class="lbl" for="f-addr">Dirección</label><input type="text" id="f-addr" autocomplete="street-address" placeholder="Calle, número, piso, entre calles"><p class="err" id="e-addr" hidden>Escribí la dirección de entrega.</p></div>
+      <div class="field" id="f-tip-wrap" hidden><label class="lbl" for="f-tip">Propina para el repartidor <span class="count">Mínimo sugerido: $1.000</span></label><input type="text" id="f-tip" inputmode="numeric" value="1000" autocomplete="off"><p class="fine">El envío no tiene costo. Podés ajustar el monto de la propina.</p></div>
+      <div class="field"><label class="lbl" for="f-pay">Forma de pago</label><select id="f-pay"></select></div>
+      <div class="field"><label class="lbl" for="f-note">Comentarios <span class="count">Opcional</span></label><textarea id="f-note" maxlength="200" placeholder="Horario preferido, aclaraciones…"></textarea></div>
+      <div class="row"><button class="primary wa" type="button" id="send">Enviar pedido por WhatsApp</button></div>
+      <p class="fine">Se abre WhatsApp con el resumen listo para enviar. El pedido queda confirmado cuando el local te responda.</p>
+      <div class="row" style="margin-top:6px"><button class="link" type="button" id="clear">Vaciar pedido</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== Configuración del local (editable) ===== */
+var CONFIG = {
+  nombre: "Pizza Bonzi",
+  whatsapp: "5491150396605",          // Número con código de país y sin signos
+  pagos: ["Efectivo", "Transferencia"]
+};
+
+/* ===== Menú copiado de pedix.app/pizzabonzi ===== */
+var MENU = [
+  { id: "pizzas", name: "Pizzas", glyph: "pizza", items: [
+    { id: "p1", name: "Pizza calabresa", desc: "Muzzarella, longaniza calabresa y aceitunas.", price: 26500, masa: true },
+    { id: "p2", name: "Pizza jamón y morrones", desc: "Muzzarella, jamón cocido y morrones asados.", price: 26500, masa: true },
+    { id: "p3", name: "Pizza napolitana", desc: "Muzzarella, rodajas de tomate fresco, ajo y aceite de oliva.", price: 26500, masa: true },
+    { id: "p4", name: "Pizza muzzarella", desc: "Salsa de tomate, muzzarella y aceitunas. La clásica de toda pizzería.", price: 22000, masa: true },
+    { id: "p5", name: "Pizza fugazzetta rellena", desc: "Doble masa rellena con muzzarella y cubierta con cebolla.", price: 32000, masa: true },
+    { id: "p6", name: "Pizza fugazzetta", desc: "Muzzarella y abundante cebolla con orégano y aceite de oliva.", price: 19000, masa: true },
+    { id: "p7", name: "Pizza Jamón", desc: "", price: 21000, masa: true },
+    { id: "p8", name: "Pizza Tocino", desc: "", price: 26500, masa: true },
+    { id: "p9", name: "Pizza Rúcula y Jamón Crudo", desc: "", price: 28900, masa: true },
+    { id: "p10", name: "Pizza Muzza y Provoleta", desc: "", price: 26500, masa: true }
+  ]},
+  { id: "empanadas", name: "Empanadas", glyph: "empanada", items: [
+    { id: "e1", name: "Empanada de carne picante", desc: "Carne picada con morrón, comino y ají molido.", price: 4300 },
+    { id: "e2", name: "Empanada de carne suave", desc: "Carne cortada a cuchillo con cebolla y especias. Al horno.", price: 4300 },
+    { id: "e3", name: "Empanada de pollo", desc: "Pollo desmenuzado con cebolla y morrón.", price: 4300 },
+    { id: "e4", name: "Empanada de humita", desc: "Choclo cremoso con queso y especias.", price: 4300 },
+    { id: "e5", name: "Empanada de jamón y queso", desc: "Clásica de jamón cocido y muzzarella.", price: 4300 },
+    { id: "e6", name: "Empanada de cebolla y queso", desc: "", price: 4300 },
+    { id: "e7", name: "Empanada Capresse", desc: "", price: 4300 },
+    { id: "e8", name: "Empanada de carne a cuchillo", desc: "", price: 4300 },
+    { id: "e9", name: "Empanada de verdura", desc: "", price: 4300 },
+    { id: "e10", name: "Empanada de Roquefort Ahumado", desc: "", price: 4300 },
+    { id: "e11", name: "Empanada de Roquefort con Jamón", desc: "", price: 4300 }
+  ]},
+  { id: "calzones", name: "Calzones", glyph: "calzone", items: [
+    { id: "c1", name: "Stromboli", desc: "Calzone enrollado con salame, muzzarella y morrones.", price: 32000 },
+    { id: "c2", name: "Calzone caprese", desc: "Relleno de muzzarella, tomate y albahaca.", price: 32000, masa: true },
+    { id: "c3", name: "Calzone jamón y queso", desc: "Masa de pizza rellena con muzzarella y jamón cocido.", price: 32000, masa: true }
+  ]}
+];
+
+var GLYPHS = {
+  pizza: '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M6 10c9-5 19-5 28 0L20 35z"/><circle cx="16" cy="15" r="2" fill="currentColor"/><circle cx="24" cy="15.5" r="2" fill="currentColor"/><circle cx="20" cy="24" r="2" fill="currentColor"/></svg>',
+  empanada: '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M5 27a15 15 0 0 1 30 0z"/><path d="M9 27v-1M14 27v-1M19 27v-1M24 27v-1M29 27v-1"/></svg>',
+  calzone: '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M5 29c0-12 8-19 15-19s15 7 15 19z"/><path d="M13 21c3-4 11-4 14 0"/></svg>'
+};
+
+var $ = function (s) { return document.querySelector(s); };
+var fmt = function (n) { return "$" + n.toLocaleString("es-AR"); };
+var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+var byId = {};
+MENU.forEach(function (c) { c.items.forEach(function (i) { i.cat = c; byId[i.id] = i; }); });
+
+var cart = [];
+try { var saved = JSON.parse(localStorage.getItem("bonzi-cart") || "[]"); if (Array.isArray(saved)) cart = saved.filter(function (l) { return byId[l.id] && l.qty > 0; }); } catch (e) {}
+function persist() { try { localStorage.setItem("bonzi-cart", JSON.stringify(cart)); } catch (e) {} }
+
+/* ===== Render del menú ===== */
+function qtyOf(id) { return cart.reduce(function (a, l) { return l.id === id ? a + l.qty : a; }, 0); }
+function renderMenu() {
+  $("#catnav").innerHTML = MENU.map(function (c, i) { return '<a href="#' + c.id + '" data-cat="' + c.id + '"' + (i === 0 ? ' aria-current="true"' : "") + ">" + esc(c.name) + "</a>"; }).join("");
+  $("#menu").innerHTML = MENU.map(function (c) {
+    return '<section class="cat" id="' + c.id + '"><h2>' + esc(c.name) + "</h2>" +
+      (c.id === "pizzas" ? '<p class="cat-note">Cada pizza se elige al molde o a la piedra.</p>' : "") +
+      '<ul class="items">' + c.items.map(function (i) {
+        var q = qtyOf(i.id);
+        return '<li><button class="item" type="button" data-id="' + i.id + '"><span class="glyph" aria-hidden="true">' + GLYPHS[c.glyph] + '</span><span><h3>' + esc(i.name) + "</h3>" + (i.desc ? "<p>" + esc(i.desc) + "</p>" : "") + '</span><span class="price-col"><span class="price">' + fmt(i.price) + '</span>' + (q ? '<span class="qty-badge">' + q + " en el pedido</span>" : '<span class="plus" aria-hidden="true">+</span>') + "</span></button></li>";
+      }).join("") + "</ul></section>";
+  }).join("");
+}
+function total() { return cart.reduce(function (a, l) { return a + l.qty * byId[l.id].price; }, 0); }
+function count() { return cart.reduce(function (a, l) { return a + l.qty; }, 0); }
+function refresh() {
+  renderMenu(); observe();
+  var n = count();
+  $("#cartbar").hidden = n === 0;
+  $("#cn").textContent = n; $("#ct").textContent = fmt(total());
+  persist();
+}
+
+/* ===== Hoja de producto ===== */
+var cur = null, curQty = 1;
+function openProduct(id) {
+  cur = byId[id]; curQty = 1;
+  $("#p-name").textContent = cur.name;
+  $("#p-desc").textContent = cur.desc; $("#p-desc").hidden = !cur.desc;
+  $("#p-masa").hidden = !cur.masa; $("#p-err").hidden = true;
+  document.querySelectorAll('input[name="masa"]').forEach(function (r) { r.checked = false; });
+  $("#p-obs").value = ""; $("#p-count").textContent = "0 / 150";
+  updAdd(); $("#ov-product").hidden = false;
+}
+function updAdd() { $("#p-qty").textContent = curQty; $("#p-add").textContent = "Agregar " + fmt(cur.price * curQty); }
+$("#p-minus").onclick = function () { if (curQty > 1) { curQty--; updAdd(); } };
+$("#p-plus").onclick = function () { if (curQty < 99) { curQty++; updAdd(); } };
+$("#p-obs").oninput = function () { $("#p-count").textContent = this.value.length + " / 150"; };
+$("#p-add").onclick = function () {
+  var m = document.querySelector('input[name="masa"]:checked');
+  if (cur.masa && !m) { $("#p-err").hidden = false; return; }
+  var masa = cur.masa ? m.value : "", obs = $("#p-obs").value.trim();
+  var found = cart.filter(function (l) { return l.id === cur.id && l.masa === masa && l.obs === obs; })[0];
+  if (found) found.qty += curQty; else cart.push({ id: cur.id, masa: masa, obs: obs, qty: curQty });
+  closeAll(); refresh();
+};
+$("#menu").onclick = function (e) { var b = e.target.closest(".item"); if (b) openProduct(b.dataset.id); };
+
+/* ===== Carrito ===== */
+function renderCart() {
+  var ul = $("#c-lines");
+  if (!cart.length) { ul.innerHTML = '<li class="empty">Todavía no agregaste nada.</li>'; $("#c-form").hidden = true; return; }
+  $("#c-form").hidden = false;
+  ul.innerHTML = cart.map(function (l, ix) {
+    var p = byId[l.id], sub = [l.masa, l.obs && "Obs: " + l.obs].filter(Boolean).join(" · ");
+    return '<li class="line"><div class="line-top"><b>' + esc(p.name) + '</b><span class="price">' + fmt(p.price * l.qty) + "</span></div>" + (sub ? '<div class="sub">' + esc(sub) + "</div>" : "") +
+      '<div class="line-bot"><div class="stepper"><button type="button" data-ix="' + ix + '" data-d="-1" aria-label="Quitar uno">−</button><output>' + l.qty + '</output><button type="button" data-ix="' + ix + '" data-d="1" aria-label="Agregar uno">+</button></div><button class="link" type="button" data-ix="' + ix + '" data-d="del">Quitar</button></div></li>';
+  }).join("");
+  updTotal();
+}
+function isEnvio() { return document.querySelector('input[name="ent"]:checked').value === "Envío a domicilio"; }
+function tip() { return isEnvio() ? (parseInt(($("#f-tip").value || "").replace(/\D/g, ""), 10) || 0) : 0; }
+function updTotal() {
+  $("#c-total").textContent = fmt(total() + tip());
+  $("#c-break").textContent = isEnvio()
+    ? "Productos " + fmt(total()) + " + propina " + fmt(tip()) + " · envío sin cargo"
+    : "";
+}
+$("#f-tip").oninput = updTotal;
+$("#c-lines").onclick = function (e) {
+  var b = e.target.closest("button[data-ix]"); if (!b) return;
+  var l = cart[+b.dataset.ix], d = b.dataset.d;
+  if (d === "del") cart.splice(+b.dataset.ix, 1);
+  else { l.qty += +d; if (l.qty < 1) cart.splice(+b.dataset.ix, 1); else if (l.qty > 99) l.qty = 99; }
+  refresh(); renderCart(); if (!cart.length) $("#ov-cart").hidden = false;
+};
+$("#opencart").onclick = function () { renderCart(); $("#ov-cart").hidden = false; };
+$("#f-pay").innerHTML = CONFIG.pagos.map(function (p) { return "<option>" + esc(p) + "</option>"; }).join("");
+document.querySelectorAll('input[name="ent"]').forEach(function (r) {
+  r.onchange = function () { $("#f-addr-wrap").hidden = !isEnvio(); $("#f-tip-wrap").hidden = !isEnvio(); updTotal(); };
+});
+$("#clear").onclick = function () { cart = []; refresh(); renderCart(); };
+
+$("#send").onclick = function () {
+  var name = $("#f-name").value.trim(), ent = document.querySelector('input[name="ent"]:checked').value, addr = $("#f-addr").value.trim();
+  var envio = ent === "Envío a domicilio", ok = true;
+  $("#e-name").hidden = !!name; if (!name) ok = false;
+  $("#e-addr").hidden = !(envio && !addr); if (envio && !addr) ok = false;
+  if (!ok) return;
+  var lines = ["*Nuevo pedido - " + CONFIG.nombre + "*", "", "*Cliente:* " + name, "*Entrega:* " + ent];
+  if (envio) lines.push("*Dirección:* " + addr, "*Envío:* Sin cargo", "*Propina:* " + (tip() ? fmt(tip()) : "Sin propina"));
+  lines.push("*Pago:* " + $("#f-pay").value, "", "*Pedido:*");
+  cart.forEach(function (l) {
+    var p = byId[l.id];
+    lines.push("• " + l.qty + " x " + p.name + (l.masa ? " (" + l.masa + ")" : "") + " - " + fmt(p.price * l.qty));
+    if (l.obs) lines.push("   Obs: " + l.obs);
+  });
+  lines.push("", "*Total: " + fmt(total() + tip()) + "*");
+  var note = $("#f-note").value.trim(); if (note) lines.push("", "*Comentarios:* " + note);
+  var url = "https://wa.me/" + CONFIG.whatsapp.replace(/\D/g, "") + "?text=" + encodeURIComponent(lines.join("\n"));
+  var a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove();
+};
+
+/* ===== Cierre de hojas y navegación ===== */
+function closeAll() { $("#ov-product").hidden = true; $("#ov-cart").hidden = true; }
+document.querySelectorAll(".overlay").forEach(function (o) { o.addEventListener("click", function (e) { if (e.target === o || e.target.closest("[data-close]")) closeAll(); }); });
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeAll(); });
+$("#catnav").onclick = function (e) {
+  var a = e.target.closest("a"); if (!a) return; e.preventDefault();
+  var s = document.getElementById(a.dataset.cat); if (s) s.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+var io;
+function observe() {
+  if (io) io.disconnect();
+  if (!("IntersectionObserver" in window)) return;
+  io = new IntersectionObserver(function (es) {
+    es.forEach(function (en) { if (en.isIntersecting) document.querySelectorAll("#catnav a").forEach(function (a) { a.setAttribute("aria-current", a.dataset.cat === en.target.id ? "true" : "false"); }); });
+  }, { rootMargin: "-90px 0px -65% 0px" });
+  document.querySelectorAll("section.cat").forEach(function (s) { io.observe(s); });
+}
+/* ===== Estado abierto / cerrado (hora de Buenos Aires) ===== */
+function estado() {
+  try {
+    var parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Argentina/Buenos_Aires", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+    var v = {}; parts.forEach(function (p) { v[p.type] = p.value; });
+    var m = parseInt(v.hour, 10) * 60 + parseInt(v.minute, 10);
+    var open = v.weekday !== "Sun" && ((m >= 690 && m < 900) || (m >= 1140 && m < 1410));
+    var el = $("#estado");
+    el.textContent = open ? "Abierto ahora" : "Cerrado ahora";
+    el.className = "badge " + (open ? "open" : "closed"); el.hidden = false;
+  } catch (e) {}
+}
+estado();
+refresh();
+</script>
